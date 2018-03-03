@@ -71,12 +71,12 @@ void initializePins(){
 
 void readLineSensors(){
 //Teensy reads value from phototransistor in OPB704WZ
-  frontLineSensorLeft = analogRead(photoA5);
-  //Serial.println(frontLineSensorLeft);
-  frontLineSensorRight = analogRead(photoA7);
+  frontLineSensorLeft = analogRead(photoA8);
+  frontLineSensorRight = analogRead(photoA9);
   backLineSensorLeft = analogRead(photoA6);
-  backLineSensorRight = analogRead(photoA9);     
+  backLineSensorRight = analogRead(photoA7);     
   sideLineSensor = analogRead(photoA5); 
+  //Serial.println(frontLineSensorLeft);
 }
 
 void loop() {
@@ -174,9 +174,4 @@ unsigned char blackTape(int lineSensor){
   return true;
   else return false;
 }
-
-
-
-
-
 
