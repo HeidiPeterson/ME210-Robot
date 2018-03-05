@@ -1,10 +1,3 @@
-//Lab 2 Part 4
-//Drives two DC motors
-//Speed of motor is set in code
-//CURRENTLY WHAT THIS DOES:
-//TEENSY READS VALUES FROM THE PHOTOTRANSISTOR
-//RUNS MOTORS
-
 #include <Metro.h>
 #include <Servo.h>
 /*---------------Module Defines-----------------------------*/
@@ -12,10 +5,10 @@
 //low and high values defined for hysteresis
 
 
-#define BLACK_THRESHOLD_LOW    40
-#define BLACK_THRESHOLD_HIGH   250
-#define GREY_THRESHOLD_LOW     300
-#define GREY_THRESHOLD_HIGH    500
+#define BLACK_THRESHOLD_LOW    10
+#define BLACK_THRESHOLD_HIGH   95
+#define GREY_THRESHOLD_LOW     110
+#define GREY_THRESHOLD_HIGH    250
 #define GREEN_THRESHOLD_LOW
 #define GREEN_THRESHOLD_HIGH
 //#define BLACK_SIDE_THRESHOLD_LOW  50
@@ -119,6 +112,12 @@ void readLineSensors() {
   Serial.print(backLineSensorLeft);
   Serial.print(" RR sensor: ");
   Serial.print(backLineSensorRight);
+  Serial.print(" S sensor: ");
+  Serial.print(sideLineSensor);
+  Serial.print(" R Motor: ");
+  Serial.print(rightMotorSpeed);
+  Serial.print(" L Motor: ");
+  Serial.print(leftMotorSpeed);
   Serial.print(" state: ");
   Serial.println(state);
 }
@@ -171,6 +170,8 @@ void stateForward () {
   readLineSensors();
   runMotorsForward ();
   if (blackTape(sideLineSensor)) {
+    leftMotorSpeed = (leftMotorSpeed/1.5) * turnConstant;
+    rightMotorSpeed = (leftMotorSpeed * motorOffset)/1.5;
     turnTimer.reset();
     state = STATE_TURN;
   }
@@ -198,13 +199,15 @@ void stateStop() {
 
 void stateTurn() {
   readLineSensors();
-  leftMotorSpeed = (leftMotorSpeed/1.5) * turnConstant;
-  rightMotorSpeed = (leftMotorSpeed * motorOffset) / 1.5;
   analogWrite(enablePinLeft, leftMotorSpeed);
   analogWrite(enablePinRight, rightMotorSpeed);
   digitalWrite(leftMotorDirection, HIGH); //initialize direction pin 1 to HIGH
   digitalWrite(rightMotorDirection, HIGH); //initialize direction pin 2 to LOW
-  if (blackTape(frontLineSensorRight) and timerExpired(turnTimer)) state = STATE_MOVE_FORWARD;
+  if (blackTape(frontLineSensorRight) and timerExpired(turnTimer)){
+    leftMotorSpeed = motor_baseline_left;
+    rightMotorSpeed = motor_baseline_right;
+    state = STATE_MOVE_FORWARD;
+  }
   
 }
 
