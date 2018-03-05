@@ -20,7 +20,7 @@
 #define GREEN_THRESHOLD_HIGH
 //#define BLACK_SIDE_THRESHOLD_LOW  50
 //#define BLACK_SIDE_THRESHOLD_HIGH 100
-#define TURN_INTERVAL 200
+#define TURN_INTERVAL 300
 
 
 //Teensy pins to connect to L293 enable and direction pins
@@ -108,21 +108,23 @@ void readLineSensors() {
   //Teensy reads value from phototransistor in OPB704WZ
   frontLineSensorLeft = analogRead(photoA8);
   frontLineSensorRight = analogRead(photoA9);
-  delay(40);
-  Serial.print("left line sensor:");
-  Serial.print(frontLineSensorLeft);
-  Serial.print("right line sensor:");
-  Serial.println(frontLineSensorRight);
   backLineSensorLeft = analogRead(photoA6);
   backLineSensorRight = analogRead(photoA7);
   sideLineSensor = analogRead(photoA5);
-//  Serial.println(frontLineSensorLeft);
+  Serial.print("FL sensor: ");
+  Serial.print(frontLineSensorLeft);
+  Serial.print(" FR sensor: ");
+  Serial.print(frontLineSensorRight);
+  Serial.print(" RL sensor: ");
+  Serial.print(backLineSensorLeft);
+  Serial.print(" RR sensor: ");
+  Serial.print(backLineSensorRight);
+  Serial.print(" state: ");
+  Serial.println(state);
 }
 /*-----------------------------------------------------------------------------------------------*/
 
 void loop() {
-//      delay(40);
-//      Serial.println(state);
   switch (state) {
     case STATE_MOVE_FORWARD:
       stateForward ();
@@ -207,7 +209,6 @@ void stateTurn() {
 }
 
 void stateGrey() {
-  delay(40);
   Serial.println("grey");
   readLineSensors();
   runMotorsGrey();
@@ -259,10 +260,10 @@ void runMotorsGrey() {
 }
 
 void adjustSpeedForward () {
-  if (blackTape(frontLineSensorLeft)) {
+  if (blackTape(frontLineSensorLeft) || blackTape(backLineSensorRight)) {
     shiftLeft();
   }
-  else if (blackTape(frontLineSensorRight)) {
+  else if (blackTape(frontLineSensorRight) || blackTape(backLineSensorLeft)) {
     shiftRight();
   }
   else {
@@ -272,10 +273,10 @@ void adjustSpeedForward () {
 }
 
 void adjustSpeedReverse() {
-  if (blackTape(backLineSensorLeft)) {
-    shiftLeft();
-  } else if (blackTape(backLineSensorRight)) {
+  if (blackTape(backLineSensorLeft)|| blackTape(backLineSensorRight)) {
     shiftRight();
+  } else if (blackTape(backLineSensorRight)|| blackTape(backLineSensorRight)) {
+    shiftLeft();
   }
   else {
     leftMotorSpeed = motor_baseline_left;
@@ -286,11 +287,9 @@ void adjustSpeedReverse() {
 void adjustSpeedGrey() {
 if (blackTape(backLineSensorLeft)) {
     shiftRight();
-    delay(40);
     Serial.print("shift right");
   } else if (blackTape(backLineSensorRight)) {
     shiftLeft();
-    delay(40);
     Serial.print("shift left");
   }
   else {
@@ -343,5 +342,3 @@ unsigned char timerExpired(Metro timer) {
   return timer.check();
 }
 /*---------------------------------------------------------------------------------------------*/
-
-
