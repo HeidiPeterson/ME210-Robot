@@ -63,11 +63,11 @@ int pos = closed;    // variable to store the servo position
 
 //set up turn and grey timers
 static Metro turnTimer = Metro(TURN_INTERVAL);
-static Metro greyTimer = Metro(GREY_INTERVAL);
+IntervalTimer greyTimer;
 
 /*---------------State Definitions--------------------------*/
 typedef enum {
-  STATE_MOVE_FORWARD, STATE_MOVE_REVERSE, STATE_STOP, STATE_TURN, STATE_GREY
+  STATE_MOVE_FORWARD, STATE_MOVE_REVERSE, STATE_STOP, STATE_TURN
 } States_t;
 
 /*---------------Module Variables---------------------------*/
@@ -104,22 +104,22 @@ void readLineSensors() {
   backLineSensorLeft = analogRead(photoA6);
   backLineSensorRight = analogRead(photoA7);
   sideLineSensor = analogRead(photoA5);
-  Serial.print("FL sensor: ");
-  Serial.print(frontLineSensorLeft);
-  Serial.print(" FR sensor: ");
-  Serial.print(frontLineSensorRight);
-  Serial.print(" RL sensor: ");
-  Serial.print(backLineSensorLeft);
-  Serial.print(" RR sensor: ");
-  Serial.print(backLineSensorRight);
-  Serial.print(" S sensor: ");
-  Serial.print(sideLineSensor);
-  Serial.print(" R Motor: ");
-  Serial.print(rightMotorSpeed);
-  Serial.print(" L Motor: ");
-  Serial.print(leftMotorSpeed);
-  Serial.print(" state: ");
-  Serial.println(state);
+//  Serial.print("FL sensor: ");
+//  Serial.print(frontLineSensorLeft);
+//  Serial.print(" FR sensor: ");
+//  Serial.print(frontLineSensorRight);
+//  Serial.print(" RL sensor: ");
+//  Serial.print(backLineSensorLeft);
+//  Serial.print(" RR sensor: ");
+//  Serial.print(backLineSensorRight);
+//  Serial.print(" S sensor: ");
+//  Serial.print(sideLineSensor);
+//  Serial.print(" R Motor: ");
+//  Serial.print(rightMotorSpeed);
+//  Serial.print(" L Motor: ");
+//  Serial.print(leftMotorSpeed);
+//  Serial.print(" state: ");
+//  Serial.println(state);
 }
 /*-----------------------------------------------------------------------------------------------*/
 
@@ -137,9 +137,6 @@ void loop() {
     case STATE_TURN:
       stateTurn();
       break;
-    case STATE_GREY:
-      stateGrey();
-      break;
     default:    // Should never get into an unhandled state
       Serial.println("What is this I do not even...");
   }
@@ -147,7 +144,7 @@ void loop() {
 
 /*-----------------------Servo Functions-----------------------------------------------*/
 void openFrontGate() {
-  gateTimer.begin(closeGate, twoBallTime);
+  gateTimer.begin(closeGate, oneBallTime);
   gateServo.write(openFront);
 }
 
@@ -159,6 +156,7 @@ void openBackGate() {
 void closeGate() {
   gateServo.write(closed);
   gateTimer.end();
+  greyTimer.end();
 }
 /*---------------------------------------------------------------------------------------------*/
 
@@ -174,11 +172,11 @@ void stateForward () {
     rightMotorSpeed = (leftMotorSpeed * motorOffset)/1.5;
     turnTimer.reset();
     state = STATE_TURN;
+    Serial.print(" state: ");
+    Serial.println(state);
   }
   if (greyTape(frontLineSensorLeft) and greyTape(frontLineSensorRight)) {
-    runMotorsGrey();
-    greyTimer.reset();
-    state = STATE_GREY;
+      greyTimer.begin(openFrontGate, GREY_INTERVAL);
   }
 }
 
@@ -207,20 +205,12 @@ void stateTurn() {
     leftMotorSpeed = motor_baseline_left;
     rightMotorSpeed = motor_baseline_right;
     state = STATE_MOVE_FORWARD;
+    Serial.print(" state: ");
+    Serial.println(state);
   }
   
 }
 
-void stateGrey() {
-  Serial.println("grey");
-  readLineSensors();
-  runMotorsGrey();
-  if (timerExpired(greyTimer)) {
-    runMotorsForward();
-    openBackGate();
-    state = STATE_MOVE_FORWARD;
-  }
-}
 /*---------------------------------------------------------------------------------------------*/
 
 
@@ -252,15 +242,6 @@ void runMotorsReverse() {
 }
 
 //Line follow with the back line sensors
-void runMotorsGrey() {
-  digitalWrite(leftMotorDirection, HIGH);
-  digitalWrite(rightMotorDirection, LOW);
-
-  //Adjust speed
-  adjustSpeedGrey();
-  analogWrite(enablePinLeft, leftMotorSpeed);
-  analogWrite(enablePinRight, rightMotorSpeed);
-}
 
 void adjustSpeedForward () {
   if (blackTape(frontLineSensorLeft) || blackTape(backLineSensorRight)) {
@@ -287,30 +268,13 @@ void adjustSpeedReverse() {
   }
 }
 
-void adjustSpeedGrey() {
-if (blackTape(backLineSensorLeft)) {
-    shiftRight();
-    Serial.print("shift right");
-  } else if (blackTape(backLineSensorRight)) {
-    shiftLeft();
-    Serial.print("shift left");
-  }
-  else {
-    leftMotorSpeed = motor_baseline_left;
-    rightMotorSpeed = motor_baseline_right;
-  }
-}
 
 void shiftRight() {
-  //  delay(40);
-  //  Serial.print("  shifting right  ");
   rightMotorSpeed = max(0, rightMotorSpeed / speedAdjust);
   leftMotorSpeed = min(1023, leftMotorSpeed * speedAdjust);
 }
 
 void shiftLeft() {
-  //  delay(40);
-  //  Serial.print("  shifting left  ");
   leftMotorSpeed = max(0, leftMotorSpeed / speedAdjust);
   rightMotorSpeed = min(1023, rightMotorSpeed * speedAdjust);
 }
