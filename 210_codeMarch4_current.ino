@@ -37,11 +37,11 @@ int backLineSensorRight = 0;
 int sideLineSensor = 0;
 
 //set motor speed
-double speedAdjust = 1.25;
+double speedAdjust = 1.15;
 double motorOffset = 1.45;
 double turnConstant = 1.5;
 int leftMotorSpeed = 100;
-double greyInterval = 120000/leftMotorSpeed;
+double greyInterval = 500000;
 #define GREY_INTERVAL greyInterval
 int rightMotorSpeed = leftMotorSpeed * motorOffset;
 int motor_baseline_right = rightMotorSpeed;
@@ -59,7 +59,6 @@ const int openFront = 175;
 const int closed = 90;
 const int oneBallTime = 250000;
 const int twoBallTime = 500000;
-int pos = closed;    // variable to store the servo position
 
 //set up turn and grey timers
 static Metro turnTimer = Metro(TURN_INTERVAL);
@@ -114,12 +113,12 @@ void readLineSensors() {
 //  Serial.print(backLineSensorRight);
 //  Serial.print(" S sensor: ");
 //  Serial.print(sideLineSensor);
-//  Serial.print(" R Motor: ");
-//  Serial.print(rightMotorSpeed);
-//  Serial.print(" L Motor: ");
-//  Serial.print(leftMotorSpeed);
-//  Serial.print(" state: ");
-//  Serial.println(state);
+  Serial.print(" R Motor: ");
+  Serial.print(rightMotorSpeed);
+  Serial.print(" L Motor: ");
+  Serial.print(leftMotorSpeed);
+  Serial.print(" state: ");
+  Serial.println(state);
 }
 /*-----------------------------------------------------------------------------------------------*/
 
@@ -146,17 +145,20 @@ void loop() {
 void openFrontGate() {
   gateTimer.begin(closeGate, oneBallTime);
   gateServo.write(openFront);
+  greyTimer.end();
+
 }
 
 void openBackGate() {
   gateTimer.begin(closeGate, oneBallTime);
   gateServo.write(openBack);
+  greyTimer.end();
+
 }
 
 void closeGate() {
   gateServo.write(closed);
   gateTimer.end();
-  greyTimer.end();
 }
 /*---------------------------------------------------------------------------------------------*/
 
@@ -244,11 +246,28 @@ void runMotorsReverse() {
 //Line follow with the back line sensors
 
 void adjustSpeedForward () {
-  if (blackTape(frontLineSensorLeft) || blackTape(backLineSensorRight)) {
+  delay(100);
+  if (blackTape(frontLineSensorRight) && blackTape(backLineSensorRight)) {
+    shiftRight();
+    Serial.println("shift right");
+  }
+  else if (blackTape(frontLineSensorLeft) && blackTape(backLineSensorLeft)) {
     shiftLeft();
+    Serial.println("shift left");
+
+  }
+  else if (blackTape(frontLineSensorLeft) && blackTape(frontLineSensorLeft)) {
+    leftMotorSpeed = motor_baseline_left;
+    rightMotorSpeed = motor_baseline_right;  
+    }
+  else if (blackTape(frontLineSensorLeft) || blackTape(backLineSensorRight)) {
+    shiftLeft();
+    Serial.println("shift left");
   }
   else if (blackTape(frontLineSensorRight) || blackTape(backLineSensorLeft)) {
     shiftRight();
+    Serial.println("shift right");
+
   }
   else {
     leftMotorSpeed = motor_baseline_left;
@@ -270,13 +289,17 @@ void adjustSpeedReverse() {
 
 
 void shiftRight() {
-  rightMotorSpeed = max(0, rightMotorSpeed / speedAdjust);
-  leftMotorSpeed = min(1023, leftMotorSpeed * speedAdjust);
+  if(rightMotorSpeed>3){
+      rightMotorSpeed = max(1, rightMotorSpeed / speedAdjust);
+      leftMotorSpeed = min(1023, leftMotorSpeed * speedAdjust);
+  }
 }
 
 void shiftLeft() {
-  leftMotorSpeed = max(0, leftMotorSpeed / speedAdjust);
-  rightMotorSpeed = min(1023, rightMotorSpeed * speedAdjust);
+  if(leftMotorSpeed>3){
+      leftMotorSpeed = max(1, leftMotorSpeed / speedAdjust);
+      rightMotorSpeed = min(1023, rightMotorSpeed * speedAdjust);
+  }
 }
 /*---------------------------------------------------------------------------------------------*/
 
